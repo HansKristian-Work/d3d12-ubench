@@ -1,6 +1,8 @@
 /* Copyright (c) 2026 Hans-Kristian Arntzen for Valve Corporation
  * SPDX-License-Identifier: MIT
  */
+
+#define NOMINMAX
 #define INITGUID
 #include "device.hpp"
 #include "logging.hpp"
