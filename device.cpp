@@ -136,6 +136,11 @@ ID3D12GraphicsCommandList *Device::begin_work()
 	ID3D12DescriptorHeap *heaps[] = { resource_heap.get(), sampler_heap.get() };
 	list->SetDescriptorHeaps(2, heaps);
 	list->EndQuery(ctx.timestamps.get(), D3D12_QUERY_TYPE_TIMESTAMP, 2 * ctx.work_index + 0);
+
+	D3D12_RESOURCE_BARRIER alias = {};
+	alias.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+	list->ResourceBarrier(1, &alias);
+
 	in_work = true;
 	return list.get();
 }
@@ -246,6 +251,11 @@ bool Device::end_work(std::function<void (uint64_t)> ts_callback)
 	in_work = false;
 
 	auto &ctx = get_frame_context();
+
+	D3D12_RESOURCE_BARRIER alias = {};
+	alias.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+	list->ResourceBarrier(1, &alias);
+
 	ctx.timestamp_callbacks.push_back(std::move(ts_callback));
 	list->EndQuery(ctx.timestamps.get(), D3D12_QUERY_TYPE_TIMESTAMP, 2 * ctx.work_index + 1);
 	list->ResolveQueryData(ctx.timestamps.get(), D3D12_QUERY_TYPE_TIMESTAMP, 2 * ctx.work_index, 2,
