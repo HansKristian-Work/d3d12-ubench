@@ -1342,6 +1342,51 @@ static void run_cbv_tests()
 	}
 }
 
+static void run_lut_tests()
+{
+	auto cbv = device.create_default_buffer(1024 * 1024, nullptr,
+	                                        D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+	for (int i = 0; i < 1024; i++)
+	{
+		D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+		uav_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+		device.create_uav(i + 1024, nullptr, &uav_desc);
+	}
+
+	static PipelineState *states[] = {
+		&shaders.lut4_read_coherent,
+		&shaders.lut8_read_coherent,
+		&shaders.lut16_read_coherent,
+		&shaders.lut32_read_coherent,
+		&shaders.lut_huge_read_coherent,
+		&shaders.lut_cbv_read_coherent,
+		&shaders.lut_srv_read_coherent,
+		&shaders.lut4_read_divergent,
+		&shaders.lut8_read_divergent,
+		&shaders.lut16_read_divergent,
+		&shaders.lut32_read_divergent,
+		&shaders.lut_huge_read_divergent,
+		&shaders.lut_cbv_read_divergent,
+		&shaders.lut_srv_read_divergent,
+	};
+
+	for (auto *state : states)
+	{
+		run_timed_benchmark(state->name, [&]() -> uint64_t
+		{
+			device.setup_compute(*state);
+			device.set_root_cbv(0, cbv->GetGPUVirtualAddress());
+			device.set_constant(1, 0, 256);
+			device.set_resource_table(2, 1024);
+			device.set_root_srv(3, cbv->GetGPUVirtualAddress());
+			device.dispatch(512, 256, 1);
+			return 512 * 256;
+		});
+	}
+}
+
 static void run_benchmarks()
 {
 	device.clear_resource_heap();
@@ -1379,6 +1424,9 @@ static void run_benchmarks()
 
 	device.clear_resource_heap();
 	run_cbv_tests();
+
+	device.clear_resource_heap();
+	run_lut_tests();
 }
 
 int main(int argc, char **argv)
